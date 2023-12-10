@@ -1,6 +1,7 @@
 from selenium import webdriver
 from flask import Flask, request, redirect
 import concurrent.futures
+from collections import OrderedDict
 
 app = Flask(__name__)
 
@@ -16,6 +17,8 @@ options.add_argument('--window-size=1920,1080')
 options.add_argument('--no-sandbox')
 options.add_argument(f'user-agent={user_agent}')
 browser = webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=options) 
+
+cache = OrderedDict(maxlen=50)
 
 # Function to handle web scraping using Selenium
 def get_video_source(query_string):
@@ -44,11 +47,20 @@ def get_video_source(query_string):
 
 @app.route("/<path:query_string>", methods=["GET"])
 def get_video_source_server(query_string):
+    if len(query_string) > 30:
+        # Reject the request by returning a 414 error code
+        return abort(414, description="Query string too long")
+    if query_string in cache:
+        # If cached, move to the front of the OrderedDict to update its age
+        video_source = cache.pop(query_string)
+        cache[query_string] = video_source
+        return redirect(video_source)
     # Create a ThreadPoolExecutor for parallel execution with a timeout of 3 seconds
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(get_video_source, query_string)
         try:
             video_source = future.result(timeout=10)  # Timeout set to 3 seconds
+            cache[query_string] = video_source
             return redirect(video_source)
         except concurrent.futures.TimeoutError:
             # Handle timeout - return a default URL or handle as needed
