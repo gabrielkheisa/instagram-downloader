@@ -2,6 +2,7 @@ from selenium import webdriver
 from flask import Flask, request, redirect
 import concurrent.futures
 from collections import OrderedDict
+import time
 
 app = Flask(__name__)
 
@@ -18,7 +19,10 @@ options.add_argument('--no-sandbox')
 options.add_argument(f'user-agent={user_agent}')
 browser = webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=options) 
 
-cache = OrderedDict(maxlen=50)
+# Define the maximum cache size and duration in seconds (4 hours)
+MAX_CACHE_SIZE = 50
+CACHE_DURATION = 4 * 60 * 60  # 4 hours in seconds
+cache = OrderedDict(maxlen=MAX_CACHE_SIZE)
 
 # Function to handle web scraping using Selenium
 def get_video_source(query_string):
@@ -47,24 +51,41 @@ def get_video_source(query_string):
 
 @app.route("/<path:query_string>", methods=["GET"])
 def get_video_source_server(query_string):
+    global cache  # Ensure we reference the global cache variable
+
     if len(query_string) > 30:
-        # Reject the request by returning a 414 error code
-        return abort(414, description="Query string too long")
+        return '', 204
+
+    # Clean up entries older than 4 hours
+    current_time = time.time()
+    keys_to_remove = []
+    for key in list(cache.keys()):
+        value = cache[key]
+        if isinstance(value, dict) and "timestamp" in value:
+            timestamp = value["timestamp"]
+            if current_time - timestamp >= CACHE_DURATION:
+                keys_to_remove.append(key)
+
+    for key in keys_to_remove:
+        cache.pop(key, None)
+
     if query_string in cache:
-        # If cached, move to the front of the OrderedDict to update its age
+        # Move the existing entry to the front of the cache and update its timestamp
         video_source = cache.pop(query_string)
+        video_source["timestamp"] = time.time()
         cache[query_string] = video_source
-        return redirect(video_source)
-    # Create a ThreadPoolExecutor for parallel execution with a timeout of 3 seconds
+        return redirect(video_source["url"])
+
+    # Create a ThreadPoolExecutor for parallel execution with a timeout of 8 seconds
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(get_video_source, query_string)
         try:
-            video_source = future.result(timeout=10)  # Timeout set to 3 seconds
-            cache[query_string] = video_source
+            video_source = future.result(timeout=8)  # Timeout set to 8 seconds
+            # Add the new entry to the cache with a timestamp
+            cache[query_string] = {"url": video_source, "timestamp": time.time()}
             return redirect(video_source)
         except concurrent.futures.TimeoutError:
-            # Handle timeout - return a default URL or handle as needed
-            return redirect(base_url)
+            return redirect(base_url)  # Handle timeout - return a default URL or handle as needed
 
 if __name__ == "__main__":
     app.run(debug=False, port=8080, host="0.0.0.0")
