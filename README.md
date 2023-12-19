@@ -17,8 +17,9 @@ https://ig.gabrielkheisa.xyz/reel/Cz3dNmDMVC9/?igshid=MzRlODBiNWFlZA==
 ```
 ### Returns redirect:
 ```
-https://scontent.cdninstagram.com/v/t66.30100-16/316926421_1723935788092224_3596729375098306652_n.mp4?_nc_ht=scontent.cdninstagram.com&_nc_cat=100&_nc_ohc=6lyBPVcjJkYAX8kLe3I&edm=APs17CUBAAAA&ccb=7-5&oh=00_AfBNGf7HzFPnd-mhfvhZZZRk_-PlN3qx3hqbsINaUGA4aA&oe=6576D61D&_nc_sid=10d13b
+https://scontent.cdninstagram.com/v/t66.30100-16/316926421_1723935788092224_3596729375098306652_n.mp4?_nc_ht=scontent.cdninstagram.com&_nc_cat=100&_nc_ohc=6lyBPVcj...............
 ```
+Notes: This redirect URL (https://scontent.cdninstagram.com/...) has expiration, in which you need to re-run the query to get a new URL signature
 
 ## DISCLAIMER:
 

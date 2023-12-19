@@ -1,6 +1,7 @@
 from selenium import webdriver
 from flask import Flask, request, redirect
 import concurrent.futures
+import re
 from collections import OrderedDict
 import time
 
@@ -23,6 +24,9 @@ browser = webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=opti
 MAX_CACHE_SIZE = 50
 CACHE_DURATION = 4 * 60 * 60  # 4 hours in seconds
 cache = OrderedDict(maxlen=MAX_CACHE_SIZE)
+
+# Validate query, modify this regex as needed
+VALID_QUERY_REGEX = re.compile(r'^[\w\-\.\/]+$')
 
 # Function to handle web scraping using Selenium
 def get_video_source(query_string):
@@ -48,13 +52,21 @@ def get_video_source(query_string):
     except Exception as e:
         # Handle exceptions and return a default URL or re-raise the exception
         return base_url
+    
+@app.route("/", methods=["GET"])  # Route for empty query string
+def handle_empty_query():
+    return redirect("https://github.com/gabrielkheisa/instagram-downloader")
 
 @app.route("/<path:query_string>", methods=["GET"])
 def get_video_source_server(query_string):
     global cache  # Ensure we reference the global cache variable
-
+    print(query_string)
     if len(query_string) > 30:
         return '', 204
+
+    if not VALID_QUERY_REGEX.match(query_string):
+        return "Invalid link", 400
+
 
     # Clean up entries older than 4 hours
     current_time = time.time()
