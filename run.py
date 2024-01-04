@@ -42,7 +42,7 @@ def get_video_source(query_string):
 
         # Locate the video element using your specific xpath
         video_element = browser.find_element_by_xpath(
-            "/html/body/div[2]/div/div/div[2]/div/div/div[1]/section/main/div[1]/div/article/div/div[1]/div/div/div/div/div/div/div/video"
+            "/html/body/div[2]/div/div/div[2]/div/div/div[1]/section/main/div[1]/div[1]/article/div/div[1]/div/div/div/div/div/div/div/video"
         )
 
         # Get the video source and return it
@@ -88,11 +88,11 @@ def get_video_source_server(query_string):
         cache[query_string] = video_source
         return redirect(video_source["url"])
 
-    # Create a ThreadPoolExecutor for parallel execution with a timeout of 8 seconds
+    # Create a ThreadPoolExecutor for parallel execution with a timeout of 15 seconds
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(get_video_source, query_string)
         try:
-            video_source = future.result(timeout=8)  # Timeout set to 8 seconds
+            video_source = future.result(timeout=15)  # Timeout set to 15 seconds
             # Add the new entry to the cache with a timestamp
             cache[query_string] = {"url": video_source, "timestamp": time.time()}
             return redirect(video_source)
