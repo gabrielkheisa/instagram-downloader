@@ -1,11 +1,28 @@
 from selenium import webdriver
-from flask import Flask, request, redirect
-import concurrent.futures
+from flask import Flask, redirect
 import re
 from collections import OrderedDict
 import time
 
+# Define the maximum cache size and duration in seconds (4 hours)
+MAX_CACHE_SIZE = 50
+CACHE_DURATION = 4 * 60 * 60  # 4 hours in seconds
+cache = OrderedDict(maxlen=MAX_CACHE_SIZE)
+
+# Validate query, modify this regex as needed
+VALID_QUERY_REGEX = re.compile(r'^[\w\-\.\/]+$') 
+
 app = Flask(__name__)
+
+def invalidate_old_entries():
+    current_time = time.time()
+    one_hour_ago = current_time - 3600  # 1 hour in seconds
+
+    # Iterate over a copy of the keys to avoid modifying while iterating
+    for key in list(cache.keys()):
+        timestamp, _ = cache[key]
+        if timestamp < one_hour_ago:
+            del cache[key]
 
 # Define the base URL for scraping
 base_url = "https://instagram.com"  # Replace with your actual base URL
@@ -18,32 +35,32 @@ options.add_argument('--disable-gpu')
 options.add_argument('--window-size=1920,1080')
 options.add_argument('--no-sandbox')
 options.add_argument(f'user-agent={user_agent}')
-browser = webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=options) 
-
-# Define the maximum cache size and duration in seconds (4 hours)
-MAX_CACHE_SIZE = 50
-CACHE_DURATION = 4 * 60 * 60  # 4 hours in seconds
-cache = OrderedDict(maxlen=MAX_CACHE_SIZE)
-
-# Validate query, modify this regex as needed
-VALID_QUERY_REGEX = re.compile(r'^[\w\-\.\/]+$')
+browser = webdriver.Chrome(options=options) 
 
 # Function to handle web scraping using Selenium
 def get_video_source(query_string):
     try:
         browser.delete_all_cookies()
-
         query_string = "/" + query_string
         url = f"{base_url}{query_string}"  # Combine base URL and video ID
         browser.get(url)
 
         # Replace sleep with explicit wait if possible
-        browser.implicitly_wait(4)
+        browser.implicitly_wait(10)
+
+        browser.save_screenshot('ss_ig_reel.png')
 
         # Locate the video element using your specific xpath
-        video_element = browser.find_element_by_xpath(
-            "/html/body/div[2]/div/div/div[2]/div/div/div[1]/section/main/div[1]/div[1]/article/div/div[1]/div/div/div/div/div/div/div/video"
-        )
+        try:
+            # Reels
+            video_element = browser.find_element_by_xpath(
+                "/html/body/div[2]/div/div/div[2]/div/div/div[1]/section/main/div[1]/div[1]/article/div/div[1]/div/div/div/div/div/div/div/video"
+            )
+        except:
+            # Post (image)
+            video_element = browser.find_element_by_xpath(
+                "/html/body/div[2]/div/div/div[2]/div/div/div[1]/div[1]/div[2]/section/main/div/div[1]/div/div[1]/div/div/div/div/div/div/div[1]/img"
+            )
 
         # Get the video source and return it
         video_source = video_element.get_attribute("src")
@@ -51,8 +68,12 @@ def get_video_source(query_string):
 
     except Exception as e:
         # Handle exceptions and return a default URL or re-raise the exception
+        print("Error: ")
+        print(e)
+        browser.get("https://api.dev.gabrielkheisa.xyz/")
         return base_url
-    
+
+
 @app.route("/", methods=["GET"])  # Route for empty query string
 def handle_empty_query():
     return redirect("https://github.com/gabrielkheisa/instagram-downloader")
@@ -61,7 +82,7 @@ def handle_empty_query():
 def get_video_source_server(query_string):
     global cache  # Ensure we reference the global cache variable
     print(query_string)
-    if len(query_string) > 30:
+    if len(query_string) > 80:
         return '', 204
 
     if not VALID_QUERY_REGEX.match(query_string):
@@ -88,16 +109,13 @@ def get_video_source_server(query_string):
         cache[query_string] = video_source
         return redirect(video_source["url"])
 
-    # Create a ThreadPoolExecutor for parallel execution with a timeout of 15 seconds
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(get_video_source, query_string)
-        try:
-            video_source = future.result(timeout=15)  # Timeout set to 15 seconds
-            # Add the new entry to the cache with a timestamp
-            cache[query_string] = {"url": video_source, "timestamp": time.time()}
-            return redirect(video_source)
-        except concurrent.futures.TimeoutError:
-            return redirect(base_url)  # Handle timeout - return a default URL or handle as needed
+    # Get the video source sequentially
+    video_source = get_video_source(query_string)
+
+    # Add the new entry to the cache with a timestamp
+    cache[query_string] = {"url": video_source, "timestamp": time.time()}
+
+    return redirect(video_source)
 
 if __name__ == "__main__":
     app.run(debug=False, port=8080, host="0.0.0.0")

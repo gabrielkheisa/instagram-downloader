@@ -66,10 +66,24 @@ This micro web server does not directly download the Instagram Reels video. It s
     git clone https://github.com/gabrielkheisa/instagram-downloader.git
     ```
 
+### With Dockerfile
+
+1. Build the Dockerfile
+
+    ```
+    sudo docker build -t instagram-downloader .
+    ```
+
+2. Run the container
+
+    ```
+    sudo docker run -d -p 8080:8080 instagram-downloader
+    ```
+
 
 ## Usage
 
-1. Start the Flask app:
+1. Start the Flask app, skip this part if you use Docker:
 
     ```
     python run.py
