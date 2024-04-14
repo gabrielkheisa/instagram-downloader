@@ -80,6 +80,20 @@ This micro web server does not directly download the Instagram Reels video. It s
     sudo docker run -d -p 8080:8080 instagram-downloader
     ```
 
+### With existing Docker Image
+
+1. Pull the Docker image
+
+    ```
+    sudo docker pull ghcr.io/gabrielkheisa/instagram-downloader/gabrielkheisa/instagram-downloader:latest
+    ```
+
+2. Run the container
+
+    ```
+    sudo docker run -d -p 8080:8080 ghcr.io/gabrielkheisa/instagram-downloader/gabrielkheisa/instagram-downloader
+    ```
+
 
 ## Usage
 
