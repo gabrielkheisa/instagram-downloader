@@ -35,7 +35,7 @@ options.add_argument('--disable-gpu')
 options.add_argument('--window-size=1920,1080')
 options.add_argument('--no-sandbox')
 options.add_argument(f'user-agent={user_agent}')
-browser = webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=options) 
+browser = webdriver.Chrome(options=options) 
 
 # Function to handle web scraping using Selenium
 def get_video_source(query_string):
