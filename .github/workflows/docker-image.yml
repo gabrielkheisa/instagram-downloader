@@ -1,0 +1,23 @@
+name: Build and Publish Docker Image
+
+on:
+  push:
+    branches:
+      - main  # Trigger the workflow on pushes to the main branch
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Login to GitHub Packages Docker registry
+        run: echo "${{ secrets.GH_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.repository_owner }} --password-stdin
+
+      - name: Build Docker image
+        run: docker build -t docker.pkg.github.com/${{ github.repository }}/${{ github.repository }}:latest .
+
+      - name: Push Docker image
+        run: docker push docker.pkg.github.com/${{ github.repository }}/${{ github.repository }}:latest
