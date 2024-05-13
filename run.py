@@ -54,7 +54,7 @@ def get_video_source(query_string):
         try:
             # Reels
             video_element = browser.find_element_by_xpath(
-                "/html/body/div[2]/div/div/div[2]/div/div/div[1]/section/main/div/div[1]/article/div/div[1]/div/div/div/div/div/div/div/video"
+                "/html/body/div[2]/div/div/div[2]/div/div/div[1]/section/main/div[1]/div[1]/article/div/div[1]/div/div/div/div/div/div/div/video"
             )
         except:
             # Post (image)
